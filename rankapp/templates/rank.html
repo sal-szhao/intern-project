@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="form">
+    <form method="post">
+        <select name="instrumentType" onchange="submit();">
+            {% for type in instrument_types %}
+                <option value="{{ type }}"  {% if type == selected_type %}selected="selected"{% endif %}>{{ type }}</option>
+            {% endfor %}
+        </select>
+        {{selected_type}}
+        
+        <input type="submit">
+    </form>
+</div>
+
+<!-- {% for (entry, ) in entries %}
+<p>{{entry.rank}} {{entry.companyname}}</p>
+{% endfor %} -->
+
+
+<!-- <div class="list-group">
+
+    {% for message in messages %}
+    <a class="list-group-item list-group-item-action flex-column">
+        <div class="d-flex w-100 justify-content-between">
+            {{ message.name }} #{{ message.id }}
+            <small data-toggle="tooltip" data-placement="top"
+                    data-timestamp="{{ message.time.strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+                    data-delay="500"> {{ moment(message.time).fromNow(refresh=True) }}</small>
+
+        </div>
+        <p class='float-left'>{{ message.message }}</p>
+    </a>
+    {% endfor %}
+</div> -->
+
+{% endblock %}

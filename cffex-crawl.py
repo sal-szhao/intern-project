@@ -4,11 +4,10 @@ import datetime, time
 from driver import driver
 from selenium.webdriver.common.by import By
 
-from database import Session, engine, mapper_registry
-from models import RankEntry
+from rankapp.database import Session, engine, mapper_registry
+from rankapp.models import RankEntry
 
 from sqlalchemy import select
-
 
 # Create all the tables.
 with engine.begin() as connection:
@@ -18,44 +17,43 @@ with engine.begin() as connection:
 driver.get('http://www.cffex.com.cn/ccpm/')
 
 base = datetime.datetime.today()
-numdays = 20
+numdays = 25
 date_list = [(base - datetime.timedelta(days=x)).strftime("%Y-%m-%d") for x in range(numdays)][::-1]
 
 volumetype_list = ['trading', 'long', 'short']
 
-session = Session()
+# session = Session()
 
 date_input = driver.find_element(By.ID, "actualDate")
 query_btn = driver.find_element(By.CLASS_NAME, "btn-query")
 instrument_select_list = driver.find_elements(By.CSS_SELECTOR, "#selectSec option")
 
+rank_insert_list = []               # List of class objects to insert at once.
+
 for date in date_list:
+    print(date)
+
     # Operate buttons and inputs to demonstrate different data.
     date_input.clear()
     date_input.send_keys(date)
-
-    rank_insert_list = []               # List of class objects to insert at once.
+    time.sleep(0.01)
 
     for instrument_select in instrument_select_list:
-        print(instrument_select.text)
+        # print(instrument_select.text)
         instrument_select.click()
         query_btn.click()
+        time.sleep(0.1)
 
-        # print(driver.page_source)
-        time.sleep(0.02)
-
+        # Iterate through all the instrumentIDs in the page.
         instrument_IDs = driver.find_elements(By.CSS_SELECTOR, ".IF_first a")
-        
         for i in range(len(instrument_IDs)):
             # Get data in the table.
-            before = time.time()
             prefix = f".ifright div:nth-of-type({2*i+3}) tr:not(:last-child) "
             rank = driver.find_elements(By.CSS_SELECTOR, prefix + ".if-listf")
             company_name = driver.find_elements(By.CSS_SELECTOR, prefix + ".if-listg")
             vol = driver.find_elements(By.CSS_SELECTOR, prefix + ".if-listh")
             chg = driver.find_elements(By.CSS_SELECTOR, prefix + ".if-listi")
-            after = time.time()
-            print(after - before)
+
             # Check if there is any missing data.
             assert len(rank) == len(company_name) == len(vol) == len(chg), 'There is missing data.'
 
@@ -72,16 +70,14 @@ for date in date_list:
                     volumetype = volumetype_list[j % 3]
                 )
                 rank_insert_list.append(rank2insert)
-                
-    with Session.begin() as session:
-        session.add_all(rank_insert_list)
-    
-    time.sleep(0.5)
-    with Session.begin() as session:
-        result = session.execute(select(RankEntry).filter_by(rank=1)).all()
-        for row in result:
-            print(row)
 
-    break
+with Session.begin() as session:
+    session.add_all(rank_insert_list)
+    
+    # time.sleep(0.5)
+    # with Session.begin() as session:
+    #     result = session.execute(select(RankEntry).filter_by(rank=1)).all()
+    #     for row in result:
+    #         print(row)
 
 
