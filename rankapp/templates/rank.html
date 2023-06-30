@@ -2,38 +2,120 @@
 
 {% block content %}
 
-<div class="form">
-    <form method="post">
-        <select name="instrumentType" onchange="submit();">
+<form method="post">
+    <div class="input-group mb-3">
+
+        <select name="selectedType" onchange="submit();">
             {% for type in instrument_types %}
                 <option value="{{ type }}"  {% if type == selected_type %}selected="selected"{% endif %}>{{ type }}</option>
             {% endfor %}
         </select>
-        {{selected_type}}
+
+        <select name="selectedID" id="selectedID">
+            {% for id in instrument_IDs %}
+                <option value="{{ id }}"  {% if id == selected_ID %}selected="selected"{% endif %}>{{ id }}</option>
+            {% endfor %}
+        </select>
         
-        <input type="submit">
-    </form>
+        <input type="date" name="selectedDate" value="{{ selected_date }}">
+        
+        <input type="submit" class="btn">
+    </div>
+</form>
+
+
+<div class="row">
+    <div class="col">
+        <h4 class="text-center">{{selected_ID}} 交易量龙虎榜</h4>
+
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">席位</th>
+                <th scope="col">持仓</th>
+                <th scope="col">增减</th>
+            </tr>
+            </thead>
+
+            <tbody>
+                {% for entry in entries %}
+                    {% if entry.volumetype.value == "trading" %}
+                        <tr>
+                            <td> {{entry.rank}} </td>
+                            <td> {{entry.companyname}} </td>
+                            <td> {{entry.volume}} </td>
+                            <td> {{entry.change}} </td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="col">
+        <h4 class="text-center">{{selected_ID}} 多头龙虎榜</h4>
+
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">席位</th>
+                <th scope="col">持仓</th>
+                <th scope="col">增减</th>
+            </tr>
+            </thead>
+
+            <tbody>
+                {% for entry in entries %}
+                    {% if entry.volumetype.value == "long" %}
+                        <tr>
+                            <td> {{entry.rank}} </td>
+                            <td> {{entry.companyname}} </td>
+                            <td> {{entry.volume}} </td>
+                            <td> {{entry.change}} </td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="col">
+        <h4 class="text-center">{{selected_ID}} 空头龙虎榜</h4>
+
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">席位</th>
+                <th scope="col">持仓</th>
+                <th scope="col">增减</th>
+            </tr>
+            </thead>
+
+            <tbody>
+                {% for entry in entries %}
+                    {% if entry.volumetype.value == "short" %}
+                        <tr>
+                            <td> {{entry.rank}} </td>
+                            <td> {{entry.companyname}} </td>
+                            <td> {{entry.volume}} </td>
+                            <td> {{entry.change}} </td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
 </div>
 
-<!-- {% for (entry, ) in entries %}
-<p>{{entry.rank}} {{entry.companyname}}</p>
-{% endfor %} -->
 
+<div id="vis"></div>
 
-<!-- <div class="list-group">
-
-    {% for message in messages %}
-    <a class="list-group-item list-group-item-action flex-column">
-        <div class="d-flex w-100 justify-content-between">
-            {{ message.name }} #{{ message.id }}
-            <small data-toggle="tooltip" data-placement="top"
-                    data-timestamp="{{ message.time.strftime('%Y-%m-%dT%H:%M:%SZ') }}"
-                    data-delay="500"> {{ moment(message.time).fromNow(refresh=True) }}</small>
-
-        </div>
-        <p class='float-left'>{{ message.message }}</p>
-    </a>
-    {% endfor %}
-</div> -->
-
+    <script type="text/javascript">
+      var yourVlSpec = {{ chart_html|safe }};
+      vegaEmbed('#vis', yourVlSpec);
+    </script>
 {% endblock %}

@@ -17,7 +17,7 @@ with engine.begin() as connection:
 driver.get('http://www.cffex.com.cn/ccpm/')
 
 base = datetime.datetime.today()
-numdays = 25
+numdays = 30
 date_list = [(base - datetime.timedelta(days=x)).strftime("%Y-%m-%d") for x in range(numdays)][::-1]
 
 volumetype_list = ['trading', 'long', 'short']
@@ -61,6 +61,7 @@ for date in date_list:
             for j in range(len(rank)):
                 rank2insert = RankEntry(
                     companyname = company_name[j].text, 
+                    instrumentType = instrument_select.text,
                     instrumentID = re.findall(r'合约:(.*)', instrument_IDs[i].text)[0],
                     exchange = "CFFEX",
                     rank = int(rank[j].text),
@@ -73,11 +74,12 @@ for date in date_list:
 
 with Session.begin() as session:
     session.add_all(rank_insert_list)
-    
+        
     # time.sleep(0.5)
     # with Session.begin() as session:
     #     result = session.execute(select(RankEntry).filter_by(rank=1)).all()
     #     for row in result:
     #         print(row)
 
+# https://matplotlib.org/stable/gallery/user_interfaces/web_application_server_sgskip.html
 

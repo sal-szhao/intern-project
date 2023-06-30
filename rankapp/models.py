@@ -15,6 +15,7 @@ class RankEntry:
 
     id = Column(Integer, primary_key=True)
     companyname = Column(String)
+    instrumentType = Column(String)
     instrumentID = Column(String)
     exchange = Column(String)
     rank = Column(Integer)
@@ -25,8 +26,9 @@ class RankEntry:
 
     # Will be called when selecting the whole class object.
     def __repr__(self):
-        return "<RankEntry(%r, %r, %r, %r, %r, %r, %r, %r)>" % (
+        return "<RankEntry(%r, %r, %r, %r, %r, %r, %r, %r, %r)>" % (
             self.companyname, 
+            self.instrumentType,
             self.instrumentID,
             self.exchange,
             self.rank,
