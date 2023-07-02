@@ -18,7 +18,7 @@ def get_rank_entries(db: Session, rank_query: schemas.RankQuery):
             and_(
                 RankEntry.instrumentID == rank_query.instrumentID,
                 RankEntry.date == rank_query.date,
-                RankEntry.exchange == rank_query.exchange,
+                # RankEntry.exchange == rank_query.exchange,
             )
         )
         .order_by(RankEntry.rank)
@@ -50,7 +50,7 @@ def get_chart_html(db:Session, rank_query: schemas.RankQuery):
         .where(
             and_(
                 RankEntry.instrumentID == rank_query.instrumentID,
-                RankEntry.exchange == rank_query.exchange,
+                # RankEntry.exchange == rank_query.exchange,
             )
         )
         .group_by(RankEntry.volumetype, RankEntry.date)          

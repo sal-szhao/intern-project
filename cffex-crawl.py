@@ -11,7 +11,10 @@ from sqlalchemy import select
 
 # Create all the tables.
 with engine.begin() as connection:
-    mapper_registry.metadata.create_all(connection)
+    if 'rank_entry' not in mapper_registry.metadata.tables:
+        mapper_registry.metadata.create_all(connection)
+    else:
+        print('table rank_entry already exists')
 
 # Start scraping data. (June)
 driver.get('http://www.cffex.com.cn/ccpm/')
