@@ -111,11 +111,27 @@
 
 </div>
 
+<div class = "row">
+    <div id="visline"></div>
 
-<div id="vis"></div>
+        <script type="text/javascript">
+        var yourVlSpec = {{ linechart_html|safe }};
+        vegaEmbed('#visline', yourVlSpec);
+        </script>
 
-    <script type="text/javascript">
-      var yourVlSpec = {{ chart_html|safe }};
-      vegaEmbed('#vis', yourVlSpec);
-    </script>
+    <div id="visbarlong"></div>
+
+        <script type="text/javascript">
+        var yourVlSpec = {{ barchartlong_html|safe }};
+        vegaEmbed('#visbarlong', yourVlSpec);
+        </script>
+
+    <div id="visbarshort"></div>
+
+        <script type="text/javascript">
+        var yourVlSpec = {{ barchartshort_html|safe }};
+        vegaEmbed('#visbarshort', yourVlSpec);
+        </script>
+</div>
+
 {% endblock %}

@@ -26,8 +26,8 @@ def get_db():
     finally:
         db.close()
 
-@app.get("/home/", response_class=HTMLResponse)
-@app.post("/home/", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse)
+@app.post("/", response_class=HTMLResponse)
 async def rank(
     request: Request,
     selectedType: Annotated[str, Form()]="IF",
@@ -39,9 +39,12 @@ async def rank(
 
     rank_query = schemas.RankQuery(instrumentID=selectedID, date=selectedDate, exchange=selectedExchange)
     entries = crud.get_rank_entries(db=db, rank_query=rank_query)
+    if not entries:
+        raise HTTPException(status_code=404, detail='Item not found')
     instrumentTypes = crud.get_instrument_type(db=db)
     instrumentIDs = crud.get_instrument_id(db=db, selected_type=selectedType)
-    chart_html = crud.get_chart_html(db=db, rank_query=rank_query)
+    linechart_html = crud.get_linechart_html(db=db, rank_query=rank_query)
+    barchartlong_html, barchartshort_html = crud.get_barchart_html(db=db, rank_query=rank_query)
 
     # Drawing the chart using altair.
     return templates.TemplateResponse("rank.html", {
@@ -54,6 +57,13 @@ async def rank(
         "selected_ID": selectedID,
         "selected_date": selectedDate,
         "selected_exchange": selectedExchange,
-        "chart_html": chart_html
+        "linechart_html": linechart_html,
+        "barchartlong_html": barchartlong_html,
+        "barchartshort_html": barchartshort_html
     })
+
+
+@app.exception_handler(404)
+async def http_exception_handler(request, exc):
+    return templates.TemplateResponse("errors/404.html", {"request": request})
 
