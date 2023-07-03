@@ -1,5 +1,6 @@
 from .database import Session
-from .models import RankEntry, VolumeType
+from .models import RankEntry
+from .schemas import VolumeType
 from . import schemas
 from sqlalchemy import select, and_, or_, func
 
@@ -11,7 +12,7 @@ import pandas as pd
 
 import json
 
-
+# Return all the entries queried by the user.
 def get_rank_entries(db: Session, rank_query: schemas.RankQuery):
     query = (
         select(RankEntry).where(
@@ -27,6 +28,7 @@ def get_rank_entries(db: Session, rank_query: schemas.RankQuery):
     result = db.execute(query).all()
     return [query for (query, ) in result]
 
+# Get all the abbreviations of the insturment types.
 def get_instrument_type(db: Session):
     query = (
         select(RankEntry.instrumentType).distinct()
@@ -35,6 +37,7 @@ def get_instrument_type(db: Session):
     result = db.execute(query).all()
     return [type for (type, ) in result]
 
+# Get all the instrument IDs from the selected abbreviation.
 def get_instrument_id(db: Session, selected_type: str):
     query = (
         select(RankEntry.instrumentID).distinct()
@@ -43,8 +46,9 @@ def get_instrument_id(db: Session, selected_type: str):
     
     return [id for (id, ) in result if re.search(f'^{selected_type}[0-9]*$', id)]
 
-
+# Draw the line plot of the volumes vs. dates of a specific instrument.
 def get_linechart_html(db:Session, rank_query: schemas.RankQuery):
+    # Select data from the databse.
     query = (
         select(func.sum(RankEntry.volume), RankEntry.volumetype, RankEntry.date)
         .where(
@@ -56,6 +60,7 @@ def get_linechart_html(db:Session, rank_query: schemas.RankQuery):
         .group_by(RankEntry.volumetype, RankEntry.date)          
     )   
     
+    # Process the retrieved data.
     result = db.execute(query).all()
     date_list = []
     sum_list = []
@@ -75,6 +80,7 @@ def get_linechart_html(db:Session, rank_query: schemas.RankQuery):
     source['date'] = pd.to_datetime(source['date'])
     source['type'] = [each.value for each in (source['type'])]
 
+    # Draw the line chart.
     p1 = alt.Chart(source).mark_line().encode(
         alt.X('date:T', axis=alt.Axis(format="%Y-%m-%d")),
         y='sum',
@@ -89,89 +95,76 @@ def get_linechart_html(db:Session, rank_query: schemas.RankQuery):
 
     return json.loads(p1.to_json())
 
-def get_barchart_html(db:Session, rank_query: schemas.RankQuery):
-    source = dict()
-    temp = dict()
-
-    for target_type in [VolumeType.long, VolumeType.short]:
-        query = (
-            select(RankEntry.volume, RankEntry.companyname, RankEntry.change)
-            .where(
-                and_(
-                    RankEntry.instrumentID == rank_query.instrumentID,
-                    RankEntry.date == rank_query.date,
-                    RankEntry.volumetype == target_type,
-                )
+# Draw the bar plots of long volumes and short volumes.
+def get_barchart_html(db:Session, rank_query: schemas.RankQuery, target_type: VolumeType):
+    # Select data from the databse.
+    query = (
+        select(RankEntry.volume, RankEntry.companyname, RankEntry.change)
+        .where(
+            and_(
+                RankEntry.instrumentID == rank_query.instrumentID,
+                RankEntry.date == rank_query.date,
+                RankEntry.volumetype == target_type,
             )
-            .order_by(RankEntry.rank)
-        )   
+        )
+        .order_by(RankEntry.rank)
+    )   
 
-        result = db.execute(query).all()
-        volume_list, type_list, name_list = [], [], []
+    # Process the retrieved data.
+    result = db.execute(query).all()
+    volume_list, type_list, name_list = [], [], []
+    pure_list = []
 
-        for (volume, companyname, change, ) in result:
-            volume_list.append(volume)
-            type_list.append(target_type.value)
-            name_list.append(companyname)
+    for (volume, companyname, change, ) in result:
+        volume_list.append(volume)
+        type_list.append(target_type.value)
+        name_list.append(companyname)
 
-            volume_list.append(change)
-            name_list.append(companyname)
-            if change >= 0:
-                type_list.append("increase")
-            else:
-                type_list.append("decrease")
+        volume_list.append(change)
+        name_list.append(companyname)
+        if change >= 0:
+            type_list.append("increase")
+        else:
+            type_list.append("decrease")
 
-        source[target_type.value] = pd.DataFrame({
-            'volume': volume_list,
-            'type': type_list,
-            'name': name_list
-        })
-        
-        temp[target_type.value] = []
-        for i, each in enumerate(name_list):
-            if i % 2 == 1:
-                continue
-            temp[target_type.value].append(each)
+        pure_list.append(companyname)
 
-        order = ['long', 'short', 'increase', 'decrease']
-        order_num = list(range(4))
-        type_order_dict = dict(zip(order, order_num))
-        source[target_type.value]['type_order'] = source[target_type.value]['type'].apply(lambda x: type_order_dict[x])
+    bar_df = pd.DataFrame({
+        'volume': volume_list,
+        'type': type_list,
+        'name': name_list
+    })
+
+    # Assign the order to the type of the volume, determining the order inside the stack.
+    order = ['long', 'short', 'increase', 'decrease']
+    order_num = list(range(4))
+    type_order_dict = dict(zip(order, order_num))
+    bar_df['type_order'] = bar_df['type'].apply(lambda x: type_order_dict[x])
     
-    plong = alt.Chart(
-        source['long'], 
-        title=f"{rank_query.instrumentID}多头龙虎榜"
+    # Make altair plot.
+    if target_type == VolumeType.long:
+        trans = "多头"
+    if target_type == VolumeType.short:
+        trans = "空头"
+
+    plot = alt.Chart(
+        bar_df, 
+        title=f"{rank_query.instrumentID}{trans}龙虎榜"
     ).transform_calculate(
         abs_volume = 'abs(datum.volume)'
     ).mark_bar().encode(
-        x=alt.X('abs_volume:Q', title=""),
-        y=alt.Y('name:N', title="", sort=temp['long']),
+        x=alt.X('abs_volume:Q', title="").stack('zero'),
+        y=alt.Y('name:N', title="", sort=pure_list),
         color=alt.Color('type:N', sort=order),
         order='order:N',
         tooltip=['volume', 'name']
     ).properties(
-        width=450,
-        height=800
+        width=500,
+        height=700
     ).add_selection(
         alt.selection_single()
     ).interactive()
 
-    pshort = alt.Chart(
-        source['short'], 
-        title=f"{rank_query.instrumentID}空头龙虎榜"
-    ).transform_calculate(
-        abs_volume = 'abs(datum.volume)'
-    ).mark_bar().encode(
-        x=alt.X('abs_volume:Q', title=""),
-        y=alt.Y('name:N', title="", sort=temp['short']),
-        color=alt.Color('type:N', sort=order),
-        order='order:N',
-        tooltip=['volume', 'name']
-    ).properties(
-        width=450,
-        height=800
-    ).add_selection(
-        alt.selection_single()
-    ).interactive()
 
-    return json.loads(plong.to_json()), json.loads(pshort.to_json())
+    # Return the json format of the plot for further vega embedding in jinja template.
+    return json.loads(plot.to_json())

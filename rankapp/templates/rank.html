@@ -23,6 +23,9 @@
     </div>
 </form>
 
+<div class="h-100 d-flex align-items-center justify-content-center">
+    <div id="visline"></div>
+</div>
 
 <div class="row">
     <div class="col">
@@ -111,27 +114,23 @@
 
 </div>
 
-<div class = "row">
-    <div id="visline"></div>
-
-        <script type="text/javascript">
-        var yourVlSpec = {{ linechart_html|safe }};
-        vegaEmbed('#visline', yourVlSpec);
-        </script>
-
+<div class = "row align-items-center justify-content-center">
     <div id="visbarlong"></div>
-
-        <script type="text/javascript">
-        var yourVlSpec = {{ barchartlong_html|safe }};
-        vegaEmbed('#visbarlong', yourVlSpec);
-        </script>
-
     <div id="visbarshort"></div>
-
-        <script type="text/javascript">
-        var yourVlSpec = {{ barchartshort_html|safe }};
-        vegaEmbed('#visbarshort', yourVlSpec);
-        </script>
 </div>
 
+<script type="text/javascript">
+    var yourVlSpec = {{ linechart_html|safe }};
+    vegaEmbed('#visline', yourVlSpec);
+</script>
+
+<script type="text/javascript">
+    var yourVlSpec = {{ barchartlong_html|safe }};
+    vegaEmbed('#visbarlong', yourVlSpec);
+</script>
+
+<script type="text/javascript">
+    var yourVlSpec = {{ barchartshort_html|safe }};
+    vegaEmbed('#visbarshort', yourVlSpec);
+    </script>
 {% endblock %}

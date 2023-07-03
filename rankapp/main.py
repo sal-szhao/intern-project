@@ -37,6 +37,7 @@ async def rank(
     db: Session = Depends(get_db)
 ):
 
+    # Retrieve data from the database.
     rank_query = schemas.RankQuery(instrumentID=selectedID, date=selectedDate, exchange=selectedExchange)
     entries = crud.get_rank_entries(db=db, rank_query=rank_query)
     if not entries:
@@ -44,9 +45,10 @@ async def rank(
     instrumentTypes = crud.get_instrument_type(db=db)
     instrumentIDs = crud.get_instrument_id(db=db, selected_type=selectedType)
     linechart_html = crud.get_linechart_html(db=db, rank_query=rank_query)
-    barchartlong_html, barchartshort_html = crud.get_barchart_html(db=db, rank_query=rank_query)
+    barchartlong_html= crud.get_barchart_html(db=db, rank_query=rank_query, target_type=schemas.VolumeType.long)
+    barchartshort_html= crud.get_barchart_html(db=db, rank_query=rank_query, target_type=schemas.VolumeType.short)
 
-    # Drawing the chart using altair.
+    # Render the template.
     return templates.TemplateResponse("rank.html", {
         "request": request,
         "entries": entries,

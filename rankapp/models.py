@@ -3,11 +3,7 @@ import enum
 from sqlalchemy import Column, ForeignKey, Integer, String, Date, Enum
 from sqlalchemy.orm import relationship
 from .database import mapper_registry
-
-class VolumeType(enum.Enum):
-    trading = 'trading'
-    long = 'long'
-    short = 'short'
+from .schemas import VolumeType
 
 @mapper_registry.mapped
 class RankEntry:
