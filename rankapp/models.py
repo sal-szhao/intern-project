@@ -20,8 +20,6 @@ class RankEntry:
     volume = Column(Integer)
     volumetype = Column(Enum(VolumeType))
 
-    net_position = relationship("NetPosition", back_populates="rank_entry")
-
     # Will be called when selecting the whole class object.
     def __repr__(self):
         return "<RankEntry(%r, %r, %r, %r, %r, %r, %r, %r, %r)>" % (
@@ -44,8 +42,6 @@ class NetPosition:
     net_pos = Column(Integer)
     rank_entry_id = Column(ForeignKey("rank_entry.id"), nullable=False)
     
-    rank_entry = relationship("RankEntry", back_populates="net_position")
-
     # Will be called when selecting the whole class object.
     def __repr__(self):
         return "<NetPosition(%r)>" % (

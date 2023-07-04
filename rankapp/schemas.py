@@ -21,5 +21,3 @@ class NetPosDaily(BaseModel):
 class NetPosQuery(BaseModel):
     instrumentType: str
     companyName: str
-
-

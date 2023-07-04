@@ -48,16 +48,14 @@ async def rank(
     instrumentIDs = crud.get_instrument_id(db=db, selected_type=selectedType)
     barchartlong_html= crud.get_barchart_html(db=db, rank_query=rank_query, target_type=schemas.VolumeType.long)
     barchartshort_html= crud.get_barchart_html(db=db, rank_query=rank_query, target_type=schemas.VolumeType.short)
-    net_pos_dict, net_pos_sums = crud.get_net_positions_daily(db=db, net_pos_query=net_pos_query)
+    long_dict, short_dict, long_sum, short_sum = crud.get_net_positions_daily(db=db, net_pos_query=net_pos_query)
 
     # Render the template.
     return templates.TemplateResponse("rank.html", {
         "request": request,
-        "net_pos_dict": net_pos_dict,
         "entries": entries,
         "volume_sums": volume_sums,
         "change_sums": change_sums,
-        "net_pos_sums": net_pos_sums, 
         "instrument_types": instrumentTypes,
         "instrument_IDs": instrumentIDs,
         "selected_type": selectedType,
@@ -65,7 +63,11 @@ async def rank(
         "selected_date": selectedDate,
         "selected_exchange": selectedExchange,
         "barchartlong_html": barchartlong_html,
-        "barchartshort_html": barchartshort_html
+        "barchartshort_html": barchartshort_html,
+        "long_net_pos_dict": long_dict,
+        "short_net_pos_dict": short_dict,
+        "long_sum": long_sum,
+        "short_sum": short_sum
     })
 
 
@@ -81,9 +83,10 @@ async def net(
     companyNames = crud.get_company_name(db=db)
 
     net_pos_query = schemas.NetPosQuery(instrumentType=selectedType, companyName=selectedName)
+    net_long_table, net_short_table = crud.get_net_pos_rank(db=db, selectedType=selectedType)
     linechart_company = crud.get_linechart_company(db=db, net_pos_query=net_pos_query)    
-    # linechart_total = crud.get_linechart_total(db=db, selectedType=selectedType)    
-    crud.get_net_pos_rank(db=db, selectedType=selectedType)
+    # crud.get_linechart_total(db=db, selectedType=selectedType)    
+    # crud.get_linechart_total(db=db, selectedType=selectedType)
 
     return templates.TemplateResponse("net_positions.html", {
         "request": request,
@@ -93,6 +96,8 @@ async def net(
         "selected_name": selectedName,
         "linechart_company": linechart_company,
         # "linechart_total": linechart_total,
+        "net_long_table": net_long_table,
+        "net_short_table": net_short_table
     })
 
 @app.exception_handler(404)

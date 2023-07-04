@@ -47,10 +47,10 @@
                             <td> {{entry.companyname}} </td>
                             <td> {{entry.volume}} </td>
                             <td> {{entry.change}} </td>
-                            {% if net_pos_dict[entry.companyname] >= 0 %}
-                                <td> 多{{net_pos_dict[entry.companyname]}} </td>
+                            {% if long_net_pos_dict[entry.companyname] >= 0 %}
+                                <td> 多{{long_net_pos_dict[entry.companyname]}} </td>
                             {% else %}
-                                <td> 空{{net_pos_dict[entry.companyname] | abs}} </td>
+                                <td> 空{{long_net_pos_dict[entry.companyname] | abs}} </td>
                             {% endif %}
                         </tr>
                     {% endif %}
@@ -60,10 +60,10 @@
                     <td></td>
                     <td>{{volume_sums['long']}}</td>
                     <td>{{change_sums['long']}}</td>
-                    {% if net_pos_sums['long'] >= 0 %}
-                        <td> 多{{net_pos_sums['long']}} </td>
+                    {% if long_sum >= 0 %}
+                        <td> 多{{long_sum}} </td>
                     {% else %}
-                        <td> 空{{net_pos_sums['long'] | abs}} </td>
+                        <td> 空{{long_sum | abs}} </td>
                     {% endif %}
                 </tr>
             </tbody>
@@ -92,10 +92,10 @@
                             <td> {{entry.companyname}} </td>
                             <td> {{entry.volume}} </td>
                             <td> {{entry.change}} </td>
-                            {% if net_pos_dict[entry.companyname] >= 0 %}
-                                <td> 多{{net_pos_dict[entry.companyname]}} </td>
+                            {% if short_net_pos_dict[entry.companyname] >= 0 %}
+                                <td> 多{{short_net_pos_dict[entry.companyname]}} </td>
                             {% else %}
-                                <td> 空{{net_pos_dict[entry.companyname] | abs}} </td>
+                                <td> 空{{short_net_pos_dict[entry.companyname] | abs}} </td>
                             {% endif %} 
                         </tr>
                     {% endif %}
@@ -105,10 +105,10 @@
                     <td></td>
                     <td>{{volume_sums['short']}}</td>
                     <td>{{change_sums['short']}}</td>
-                    {% if net_pos_sums['short'] >= 0 %}
-                        <td> 多{{net_pos_sums['short']}} </td>
+                    {% if short_sum >= 0 %}
+                        <td> 多{{short_sum}} </td>
                     {% else %}
-                        <td> 空{{net_pos_sums['short'] | abs}} </td>
+                        <td> 空{{short_sum | abs}} </td>
                     {% endif %}
                 </tr>
             </tbody>
