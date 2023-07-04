@@ -14,3 +14,12 @@ class RankQuery(BaseModel):
     date: datetime.date
 
 
+class NetPosDaily(BaseModel):
+    instrumentID: str
+    date: datetime.date
+
+class NetPosQuery(BaseModel):
+    instrumentType: str
+    companyName: str
+
+

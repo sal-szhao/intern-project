@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<form method="post">
+    <div class="input-group mb-3">
+
+        <select name="selectedType" onchange="submit();">
+            {% for type in instrument_types %}
+                <option value="{{ type }}"  {% if type == selected_type %}selected="selected"{% endif %}>{{ type }}</option>
+            {% endfor %}
+        </select>
+
+        <select name="selectedName" onchange="submit();">
+            {% for name in company_names %}
+                <option value="{{ name }}"  {% if name == selected_name %}selected="selected"{% endif %}>{{ name }}</option>
+            {% endfor %}
+        </select>
+        
+        <input type="submit" class="btn">
+    </div>
+</form>
+
+<div class="h-100 d-flex align-items-center justify-content-center">
+    <div id="visline_company"></div>
+</div>
+
+<!-- <div class="h-100 d-flex align-items-center justify-content-center">
+    <div id="visline_total"></div>
+</div> -->
+
+<script type="text/javascript">
+    var yourVlSpec = {{ linechart_company|safe }};
+    vegaEmbed('#visline_company', yourVlSpec);
+</script>
+
+<script type="text/javascript">
+    var yourVlSpec = {{ linechart_total|safe }};
+    vegaEmbed('#visline_total', yourVlSpec);
+</script>
+{% endblock %}

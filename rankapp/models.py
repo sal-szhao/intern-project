@@ -20,6 +20,8 @@ class RankEntry:
     volume = Column(Integer)
     volumetype = Column(Enum(VolumeType))
 
+    net_position = relationship("NetPosition", back_populates="rank_entry")
+
     # Will be called when selecting the whole class object.
     def __repr__(self):
         return "<RankEntry(%r, %r, %r, %r, %r, %r, %r, %r, %r)>" % (
@@ -32,4 +34,20 @@ class RankEntry:
             self.date,
             self.volume,
             self.volumetype
+        )
+    
+@mapper_registry.mapped
+class NetPosition:
+    __tablename__ = "net_position"
+
+    id = Column(Integer, primary_key=True)
+    net_pos = Column(Integer)
+    rank_entry_id = Column(ForeignKey("rank_entry.id"), nullable=False)
+    
+    rank_entry = relationship("RankEntry", back_populates="net_position")
+
+    # Will be called when selecting the whole class object.
+    def __repr__(self):
+        return "<NetPosition(%r)>" % (
+            self.net_pos
         )

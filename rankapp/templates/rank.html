@@ -23,39 +23,8 @@
     </div>
 </form>
 
-<div class="h-100 d-flex align-items-center justify-content-center">
-    <div id="visline"></div>
-</div>
 
 <div class="row">
-    <div class="col">
-        <h4 class="text-center">{{selected_ID}} 交易量龙虎榜</h4>
-
-        <table class="table">
-            <thead>
-            <tr>
-                <th scope="col">#</th>
-                <th scope="col">席位</th>
-                <th scope="col">持仓</th>
-                <th scope="col">增减</th>
-            </tr>
-            </thead>
-
-            <tbody>
-                {% for entry in entries %}
-                    {% if entry.volumetype.value == "trading" %}
-                        <tr>
-                            <td> {{entry.rank}} </td>
-                            <td> {{entry.companyname}} </td>
-                            <td> {{entry.volume}} </td>
-                            <td> {{entry.change}} </td>
-                        </tr>
-                    {% endif %}
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
     <div class="col">
         <h4 class="text-center">{{selected_ID}} 多头龙虎榜</h4>
 
@@ -66,6 +35,7 @@
                 <th scope="col">席位</th>
                 <th scope="col">持仓</th>
                 <th scope="col">增减</th>
+                <th scope="col">净持仓</th>
             </tr>
             </thead>
 
@@ -77,9 +47,25 @@
                             <td> {{entry.companyname}} </td>
                             <td> {{entry.volume}} </td>
                             <td> {{entry.change}} </td>
+                            {% if net_pos_dict[entry.companyname] >= 0 %}
+                                <td> 多{{net_pos_dict[entry.companyname]}} </td>
+                            {% else %}
+                                <td> 空{{net_pos_dict[entry.companyname] | abs}} </td>
+                            {% endif %}
                         </tr>
                     {% endif %}
                 {% endfor %}
+                <tr>
+                    <td>合计：</td>
+                    <td></td>
+                    <td>{{volume_sums['long']}}</td>
+                    <td>{{change_sums['long']}}</td>
+                    {% if net_pos_sums['long'] >= 0 %}
+                        <td> 多{{net_pos_sums['long']}} </td>
+                    {% else %}
+                        <td> 空{{net_pos_sums['long'] | abs}} </td>
+                    {% endif %}
+                </tr>
             </tbody>
         </table>
     </div>
@@ -94,6 +80,7 @@
                 <th scope="col">席位</th>
                 <th scope="col">持仓</th>
                 <th scope="col">增减</th>
+                <th scope="col">净持仓</th>
             </tr>
             </thead>
 
@@ -105,9 +92,25 @@
                             <td> {{entry.companyname}} </td>
                             <td> {{entry.volume}} </td>
                             <td> {{entry.change}} </td>
+                            {% if net_pos_dict[entry.companyname] >= 0 %}
+                                <td> 多{{net_pos_dict[entry.companyname]}} </td>
+                            {% else %}
+                                <td> 空{{net_pos_dict[entry.companyname] | abs}} </td>
+                            {% endif %} 
                         </tr>
                     {% endif %}
                 {% endfor %}
+                <tr>
+                    <td>合计：</td>
+                    <td></td>
+                    <td>{{volume_sums['short']}}</td>
+                    <td>{{change_sums['short']}}</td>
+                    {% if net_pos_sums['short'] >= 0 %}
+                        <td> 多{{net_pos_sums['short']}} </td>
+                    {% else %}
+                        <td> 空{{net_pos_sums['short'] | abs}} </td>
+                    {% endif %}
+                </tr>
             </tbody>
         </table>
     </div>
@@ -119,10 +122,6 @@
     <div id="visbarshort"></div>
 </div>
 
-<script type="text/javascript">
-    var yourVlSpec = {{ linechart_html|safe }};
-    vegaEmbed('#visline', yourVlSpec);
-</script>
 
 <script type="text/javascript">
     var yourVlSpec = {{ barchartlong_html|safe }};
@@ -132,5 +131,5 @@
 <script type="text/javascript">
     var yourVlSpec = {{ barchartshort_html|safe }};
     vegaEmbed('#visbarshort', yourVlSpec);
-    </script>
+</script>
 {% endblock %}
