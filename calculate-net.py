@@ -7,6 +7,8 @@ from rankapp.schemas import VolumeType
 
 from sqlalchemy import select, and_, or_, func
 
+from collections import defaultdict
+
 db = Session()
 
 with engine.begin() as connection:
@@ -54,23 +56,18 @@ for date in date_list:
             )
 
             results= db.execute(query).all()
-            for (name, volume, type, ) in results:
-                print(name, volume, type)
-
-
-
 
             long_dict, short_dict = defaultdict(lambda: 0), defaultdict(lambda: 0)
-    res_dict = {}
-    long_names, short_names = [], []
+            res_dict = {}
+            long_names, short_names = [], []
 
-    for (name, volume, type, ) in results:
-        if type == VolumeType.long:
-            long_dict[name] = volume
-            long_names.append(name)
-        elif type == VolumeType.short:
-            short_dict[name] = volume
-            short_names.append(name)
+            for (name, volume, type, ) in results:
+                if type == VolumeType.long:
+                    long_dict[name] = volume
+                    long_names.append(name)
+                elif type == VolumeType.short:
+                    short_dict[name] = volume
+                    short_names.append(name)
             
     sums = {}
     sums['long'], sums['short'] = 0, 0
