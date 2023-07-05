@@ -83,10 +83,11 @@ async def net(
     companyNames = crud.get_company_name(db=db)
 
     net_pos_query = schemas.NetPosQuery(instrumentType=selectedType, companyName=selectedName)
-    net_long_table, net_short_table = crud.get_net_pos_rank(db=db, selectedType=selectedType)
+    net_long_table, net_short_table, net_long_sum, net_short_sum = crud.get_net_pos_rank(db=db, selectedType=selectedType)
     linechart_company = crud.get_linechart_company(db=db, net_pos_query=net_pos_query)    
-    # crud.get_linechart_total(db=db, selectedType=selectedType)    
-    # crud.get_linechart_total(db=db, selectedType=selectedType)
+    if not linechart_company:
+        raise HTTPException(status_code=404, detail='Item not found')
+    linechart_total = crud.get_linechart_total(db=db, selectedType=selectedType)    
 
     return templates.TemplateResponse("net_positions.html", {
         "request": request,
@@ -95,9 +96,11 @@ async def net(
         "selected_type": selectedType,
         "selected_name": selectedName,
         "linechart_company": linechart_company,
-        # "linechart_total": linechart_total,
+        "linechart_total": linechart_total,
         "net_long_table": net_long_table,
-        "net_short_table": net_short_table
+        "net_short_table": net_short_table,
+        "net_long_sum": net_long_sum,
+        "net_short_sum": net_short_sum
     })
 
 @app.exception_handler(404)

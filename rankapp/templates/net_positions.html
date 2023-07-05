@@ -1,16 +1,20 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<h2>
+    <a class="text-success">净持仓数据 </a> 
+</h2>
+
 <form method="post">
     <div class="input-group mb-3">
 
-        <select name="selectedType" onchange="submit();">
+        <select name="selectedType">
             {% for type in instrument_types %}
                 <option value="{{ type }}"  {% if type == selected_type %}selected="selected"{% endif %}>{{ type }}</option>
             {% endfor %}
         </select>
 
-        <select name="selectedName" onchange="submit();">
+        <select name="selectedName">
             {% for name in company_names %}
                 <option value="{{ name }}"  {% if name == selected_name %}selected="selected"{% endif %}>{{ name }}</option>
             {% endfor %}
@@ -22,9 +26,13 @@
 
 <div class = "row">
     <div class="col h-100 d-flex align-items-center justify-content-center">
-        <div id="visline_company"></div>
+        <div class="row">
+            <div class="col" id="visline_company"></div>
+            <div class="col" id="visline_total"></div>
+        </div>
     </div>
 
+    
     <div class="col">
         <h4 class="text-center"> 净多席位排行</h4>
 
@@ -43,7 +51,10 @@
                         <td> {{net | int}} </td>
                     </tr>
                 {% endfor %}
-            
+                <tr>
+                    <td> 合计： </td>
+                    <td> {{net_long_sum | int}} </td>
+                </tr>
             </tbody>
         </table>
     </div>
@@ -66,7 +77,10 @@
                         <td> {{net | int}} </td>
                     </tr>
                 {% endfor %}
-            
+                <tr>
+                    <td> 合计： </td>
+                    <td> {{net_short_sum | int}} </td>
+                </tr>
             </tbody>
         </table>
     </div>

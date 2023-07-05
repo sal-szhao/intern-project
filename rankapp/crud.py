@@ -214,12 +214,12 @@ def get_linechart_company(db: Session, net_pos_query: schemas.NetPosQuery):
     )
     
     result = db.execute(query).all()
+    if not result: return []
 
     net_pos_list, date_list = [], []
     for (sum, date, ) in result:
         net_pos_list.append(sum)
         date_list.append(date)
-
 
     # Draw the line chart.
     source = pd.DataFrame({
@@ -230,10 +230,10 @@ def get_linechart_company(db: Session, net_pos_query: schemas.NetPosQuery):
 
     plot = alt.Chart(source).mark_line().encode(
         alt.X('date:T', axis=alt.Axis(format="%Y-%m-%d")),
-        alt.Y('net_pos:Q'),
+        alt.Y('net_pos:Q', title="席位净持仓"),
         tooltip=['date', 'net_pos'],
     ).properties(
-        width=800,
+        width=700,
         height=200
     ).add_selection(
         alt.selection_single()
@@ -241,10 +241,14 @@ def get_linechart_company(db: Session, net_pos_query: schemas.NetPosQuery):
 
     return json.loads(plot.to_json())
 
-# TODO: Get the total sum of net posisions on each date across all companies.
+# Get the total sum of net posisions on each date across all companies.
 def get_linechart_total(db: Session, selectedType: str):   
     subq = (
-        select(func.avg(NetPosition.net_pos).label("net_pos"), RankEntry.date.label("date"))
+        select(
+            func.avg(NetPosition.net_pos).label("net_pos"),
+            RankEntry.companyname.label("name"),
+            RankEntry.date.label("date")
+        )  
         .where(
             RankEntry.instrumentType == selectedType,
             or_(
@@ -257,41 +261,57 @@ def get_linechart_total(db: Session, selectedType: str):
         .subquery()
     )
 
-    query = (
-        select(func.sum(subq.c.net_pos), subq.c.date)
-        .where(subq.c.net_pos >= 0)
-        .group_by(subq.c.date)
+    subsubq = (
+        select(func.sum(subq.c.net_pos).label("net_pos"), subq.c.name, subq.c.date)
+        .group_by(subq.c.name, subq.c.date)
+        .subquery()
+    )
+
+    long_query = (
+        select(func.sum(subsubq.c.net_pos), subsubq.c.date)
+        .where(subsubq.c.net_pos > 0)
+        .group_by(subsubq.c.date)
+    )
+
+    short_query = (
+        select(func.sum(subsubq.c.net_pos), subsubq.c.date)
+        .where(subsubq.c.net_pos < 0)
+        .group_by(subsubq.c.date)
     )
     
-    result = db.execute(query).all()
+    long_result, short_result = db.execute(long_query).all(), db.execute(short_query).all()
 
-    for (a,b, ) in result:
-        print(a,b)
-    # net_pos_list, date_list = [], []
-    # for (sum, date, ) in result:
-    #     net_pos_list.append(sum)
-    #     date_list.append(date)
+    sum_list, date_list, type_list = [], [], []
+    for (sum, date, ) in long_result:
+        sum_list.append(sum)
+        date_list.append(date)
+        type_list.append('long')
+    for (sum, date, ) in short_result:
+        sum_list.append(-sum)
+        date_list.append(date)
+        type_list.append('short')
 
+    # Draw the line chart.
+    source = pd.DataFrame({
+        'date': date_list,
+        'net_pos': sum_list,
+        'type': type_list
+    })
+    source['date'] = pd.to_datetime(source['date'])
 
-    # # Draw the line chart.
-    # source = pd.DataFrame({
-    #     'date': date_list,
-    #     'net_pos': net_pos_list,
-    # })
-    # source['date'] = pd.to_datetime(source['date'])
+    plot = alt.Chart(source).mark_line().encode(
+        alt.X('date:T', axis=alt.Axis(format="%Y-%m-%d")),
+        alt.Y('net_pos:Q', title="纯总净持仓"),
+        color='type:N',
+        tooltip=['date', 'net_pos'],
+    ).properties(
+        width=700,
+        height=200
+    ).add_selection(
+        alt.selection_single()
+    ).interactive()
 
-    # plot = alt.Chart(source).mark_line().encode(
-    #     alt.X('date:T', axis=alt.Axis(format="%Y-%m-%d")),
-    #     alt.Y('net_pos:Q'),
-    #     tooltip=['date', 'net_pos'],
-    # ).properties(
-    #     width=1000,
-    #     height=300
-    # ).add_selection(
-    #     alt.selection_single()
-    # ).interactive()
-
-    # return json.loads(plot.to_json())
+    return json.loads(plot.to_json())
 
 # Get the net position ranking given instrument type.
 def get_net_pos_rank(db: Session, selectedType: str):  
@@ -343,12 +363,15 @@ def get_net_pos_rank(db: Session, selectedType: str):
     long_result, short_result = db.execute(long_query).all(), db.execute(short_query).all()
 
     long_list, short_list = [], []
+    long_sum, short_sum = 0, 0
     for (sum, name, ) in long_result:
         long_list.append((name, sum))
+        long_sum += sum
     for (sum, name, ) in short_result:
         short_list.append((name, sum))
+        short_sum += sum
 
-    return long_list, short_list
+    return long_list, short_list, long_sum, short_sum
 
 
 
