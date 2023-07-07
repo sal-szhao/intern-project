@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>
+    <a class="text-success">净持仓数据 </a> 
+</h2>
+
+<form method="post">
+    <div class="input-group mb-3">
+
+        <select name="selectedType">
+            {% for type, typec in contract_types %}
+                <option value="{{ type }}"  {% if type == selected_type %}selected="selected"{% endif %}>{{ type }}/{{ typec }}</option>
+            {% endfor %}
+        </select>
+
+        <select name="selectedName">
+            {% for name in company_names %}
+                <option value="{{ name }}"  {% if name == selected_name %}selected="selected"{% endif %}>{{ name }}</option>
+            {% endfor %}
+        </select>
+        
+        <input type="submit" class="btn">
+    </div>
+</form>
+
+<div class = "row">
+    <div class="col h-100 d-flex align-items-center justify-content-center">
+        <div class="row">
+            <div class="col" id="visline_company"></div>
+            <div class="col" id="visline_total"></div>
+        </div>
+    </div>
+
+    
+    <div class="col">
+        <h4 class="text-center"> 净多席位排行</h4>
+
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">席位</th>
+                <th scope="col">净多持仓</th>
+            </tr>
+            </thead>
+
+            <tbody>
+                {% for company, net in net_rank['b'][0] %}
+                    <tr>
+                        <td> {{ company }} </td>
+                        <td> {{ net | int }} </td>
+                    </tr>
+                {% endfor %}
+                <tr>
+                    <td> 合计： </td>
+                    <td> {{ net_rank['b'][1] | int}} </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="col">
+        <h4 class="text-center"> 净空席位排行</h4>
+
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">席位</th>
+                <th scope="col">净空持仓</th>
+            </tr>
+            </thead>
+
+            <tbody>
+                {% for company, net in net_rank['s'][0] %}
+                    <tr>
+                        <td> {{ company }} </td>
+                        <td> {{ net | int }} </td>
+                    </tr>
+                {% endfor %}
+                <tr>
+                    <td> 合计： </td>
+                    <td> {{ net_rank['s'][1] | int }} </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- <div class="h-100 d-flex align-items-center justify-content-center">
+    <div id="visline_total"></div>
+</div> -->
+
+<script type="text/javascript">
+    var yourVlSpec = {{ line_chart_company|safe }};
+    vegaEmbed('#visline_company', yourVlSpec);
+</script>
+
+<script type="text/javascript">
+    var yourVlSpec = {{ line_chart_total|safe }};
+    vegaEmbed('#visline_total', yourVlSpec);
+</script>
+{% endblock %}

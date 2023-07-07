@@ -9,13 +9,13 @@
     <div class="input-group mb-3">
 
         <select name="selectedType" onchange="submit();">
-            {% for type in instrument_types %}
-                <option value="{{ type }}"  {% if type == selected_type %}selected="selected"{% endif %}>{{ type }}</option>
+            {% for type, typec in contract_types %}
+                <option value="{{ type }}"  {% if type == selected_type %}selected="selected"{% endif %}>{{ type }}/{{ typec }}</option>
             {% endfor %}
         </select>
 
         <select name="selectedID" id="selectedID">
-            {% for id in instrument_IDs %}
+            {% for id in contract_IDs %}
                 <option value="{{ id }}"  {% if id == selected_ID %}selected="selected"{% endif %}>{{ id }}</option>
             {% endfor %}
         </select>
@@ -43,17 +43,17 @@
             </thead>
 
             <tbody>
-                {% for entry in entries %}
-                    {% if entry.volumetype.value == "long" %}
+                {% for entry, net in entries %}
+                    {% if entry.volType == 'b' %}
                         <tr>
                             <td> {{entry.rank}} </td>
-                            <td> {{entry.companyname}} </td>
-                            <td> {{entry.volume}} </td>
-                            <td> {{entry.change}} </td>
-                            {% if long_net_pos_dict[entry.companyname] >= 0 %}
-                                <td> 多{{long_net_pos_dict[entry.companyname]}} </td>
+                            <td> {{entry.company}} </td>
+                            <td> {{entry.vol}} </td>
+                            <td> {{entry.chg}} </td>
+                            {% if net >= 0 %}
+                                <td> 多{{ net }} </td>
                             {% else %}
-                                <td> 空{{long_net_pos_dict[entry.companyname] | abs}} </td>
+                                <td> 空{{ net | abs }} </td>
                             {% endif %}
                         </tr>
                     {% endif %}
@@ -61,12 +61,12 @@
                 <tr>
                     <td>合计：</td>
                     <td></td>
-                    <td>{{volume_sums['long']}}</td>
-                    <td>{{change_sums['long']}}</td>
-                    {% if long_sum >= 0 %}
-                        <td> 多{{long_sum}} </td>
+                    <td>{{ sums['b'][0] }}</td>
+                    <td>{{ sums['b'][1] }}</td>
+                    {% if sums['b'][2] >= 0 %}
+                        <td> 多{{ sums['b'][2] }} </td>
                     {% else %}
-                        <td> 空{{long_sum | abs}} </td>
+                        <td> 空{{ sums['b'][2] | abs }} </td>
                     {% endif %}
                 </tr>
             </tbody>
@@ -88,30 +88,30 @@
             </thead>
 
             <tbody>
-                {% for entry in entries %}
-                    {% if entry.volumetype.value == "short" %}
+                {% for entry, net in entries %}
+                    {% if entry.volType == 's' %}
                         <tr>
                             <td> {{entry.rank}} </td>
-                            <td> {{entry.companyname}} </td>
-                            <td> {{entry.volume}} </td>
-                            <td> {{entry.change}} </td>
-                            {% if short_net_pos_dict[entry.companyname] >= 0 %}
-                                <td> 多{{short_net_pos_dict[entry.companyname]}} </td>
+                            <td> {{entry.company}} </td>
+                            <td> {{entry.vol}} </td>
+                            <td> {{entry.chg}} </td>
+                            {% if net >= 0 %}
+                                <td> 多{{ net }} </td>
                             {% else %}
-                                <td> 空{{short_net_pos_dict[entry.companyname] | abs}} </td>
-                            {% endif %} 
+                                <td> 空{{ net | abs }} </td>
+                            {% endif %}
                         </tr>
                     {% endif %}
                 {% endfor %}
                 <tr>
                     <td>合计：</td>
                     <td></td>
-                    <td>{{volume_sums['short']}}</td>
-                    <td>{{change_sums['short']}}</td>
-                    {% if short_sum >= 0 %}
-                        <td> 多{{short_sum}} </td>
+                    <td>{{ sums['s'][0] }}</td>
+                    <td>{{ sums['s'][1] }}</td>
+                    {% if sums['s'][2] >= 0 %}
+                        <td> 多{{ sums['s'][2] }} </td>
                     {% else %}
-                        <td> 空{{short_sum | abs}} </td>
+                        <td> 空{{ sums['s'][2] | abs }} </td>
                     {% endif %}
                 </tr>
             </tbody>
@@ -127,12 +127,12 @@
 
 
 <script type="text/javascript">
-    var yourVlSpec = {{ barchartlong_html|safe }};
+    var yourVlSpec = {{ bar_chart_long|safe }};
     vegaEmbed('#visbarlong', yourVlSpec);
 </script>
 
 <script type="text/javascript">
-    var yourVlSpec = {{ barchartshort_html|safe }};
+    var yourVlSpec = {{ bar_chart_short|safe }};
     vegaEmbed('#visbarshort', yourVlSpec);
 </script>
 {% endblock %}

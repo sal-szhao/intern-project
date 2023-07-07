@@ -1,135 +1,63 @@
 from .database import Session
 from .models import RankEntry, NetPosition
-from .schemas import VolumeType
 from . import schemas
 from sqlalchemy import select, and_, or_, func
 
 import re
-
 import altair as alt
-import numpy as np
 import pandas as pd
-
 import json, datetime
 from collections import defaultdict
 from typing import List
 
 
 
-# Return all the entries queried by the user.
-def get_rank_entries(db: Session, rank_query: schemas.RankQuery):
-    query = (
-        select(RankEntry).where(
-            and_(
-                RankEntry.instrumentID == rank_query.instrumentID,
-                RankEntry.date == rank_query.date,
-                # RankEntry.exchange == rank_query.exchange,
-                or_(
-                    RankEntry.volumetype == VolumeType.long,
-                    RankEntry.volumetype == VolumeType.short,
-                )
-            )
-        )
-        .order_by(RankEntry.rank)
-    )
-    results= db.execute(query).all()
-    entries = [res for (res, ) in results]
-
-    query = (
-        select(func.sum(RankEntry.volume), func.sum(RankEntry.change), RankEntry.volumetype).where(
-            and_(
-                RankEntry.instrumentID == rank_query.instrumentID,
-                RankEntry.date == rank_query.date,
-                or_(
-                    RankEntry.volumetype == VolumeType.long,
-                    RankEntry.volumetype == VolumeType.short,
-                )
-            )
-        )
-        .group_by(RankEntry.volumetype)
-    )
-    results= db.execute(query).all()
-    volume_sums, change_sums = {}, {}
-    for (volume_sum, change_sum, type, ) in results:
-        volume_sums[type.value] = volume_sum
-        change_sums[type.value] = change_sum
-
-    return entries, volume_sums, change_sums
-
-# Get all the abbreviations of the insturment types.
-def get_instrument_type(db: Session):
-    query = (
-        select(RankEntry.instrumentType).distinct()
-    )
-    
+# Get all the abbreviations of the contract types.
+def get_contract_type(db: Session):
+    query = (select(RankEntry.contractType, RankEntry.contractTypeC).distinct())
     result = db.execute(query).all()
-    return [type for (type, ) in result]
+    return [(contractType, contractTypeC) for (contractType, contractTypeC, ) in result]
 
-# Get all the instrument IDs from the selected abbreviation.
-def get_instrument_id(db: Session, selected_type: str):
-    query = (
-        select(RankEntry.instrumentID).distinct()
-    )
+# Get all contract IDs from the selected abbreviation.
+def get_contract_id(db: Session, selected_type: str):
+    query = (select(RankEntry.contractID).distinct())
     result = db.execute(query).all()
-    
     return [id for (id, ) in result if re.search(f'^{selected_type}[0-9]*$', id)]
 
-
-# Draw the bar plots of long volumes and short volumes.
-def get_barchart_html(db: Session, rank_query: schemas.RankQuery, target_type: VolumeType):
-    # Select data from the databse.
-    query = (
-        select(RankEntry.volume, RankEntry.companyname, RankEntry.change)
-        .where(
-            and_(
-                RankEntry.instrumentID == rank_query.instrumentID,
-                RankEntry.date == rank_query.date,
-                RankEntry.volumetype == target_type,
-            )
-        )
-        .order_by(RankEntry.rank)
-    )   
-
-    # Process the retrieved data.
+# Get all the available company names inside the database.
+def get_company_name(db: Session):
+    query = (select(RankEntry.company).distinct().order_by(RankEntry.company))
     result = db.execute(query).all()
-    volume_list, type_list, name_list = [], [], []
-    pure_list = []
+    return [company for (company, ) in result]
 
-    for (volume, companyname, change, ) in result:
-        volume_list.append(volume)
-        type_list.append(target_type.value)
-        name_list.append(companyname)
+# Get all the available dates inside the database.
+def get_dates(db: Session):
+    query = (select(RankEntry.date).distinct())
+    result = db.execute(query).all()
+    return [date for (date, ) in result]
 
-        volume_list.append(change)
-        name_list.append(companyname)
-        if change >= 0:
-            type_list.append("increase")
-        else:
-            type_list.append("decrease")
-
-        pure_list.append(companyname)
-
+# Function to use altair to draw the bar plot.
+def _draw_bar_chart(volume_list, name_list, type_list, pure_list, contractID, target_type):
     bar_df = pd.DataFrame({
         'volume': volume_list,
+        'name': name_list,
         'type': type_list,
-        'name': name_list
     })
 
     # Assign the order to the type of the volume, determining the order inside the stack.
-    order = ['long', 'short', 'increase', 'decrease']
+    order = ['多头', '空头', '增加', '减少']
     order_num = list(range(4))
     type_order_dict = dict(zip(order, order_num))
     bar_df['type_order'] = bar_df['type'].apply(lambda x: type_order_dict[x])
     
-    # Make altair plot.
-    if target_type == VolumeType.long:
-        trans = "多头"
-    if target_type == VolumeType.short:
-        trans = "空头"
+    if target_type == 'b':
+        temp = "多头"
+    elif target_type == 's':
+        temp = "空头"
 
     plot = alt.Chart(
         bar_df, 
-        title=f"{rank_query.instrumentID}{trans}龙虎榜"
+        title=f"{contractID}{temp}龙虎榜"
     ).transform_calculate(
         abs_volume = 'abs(datum.volume)'
     ).mark_bar().encode(
@@ -145,93 +73,78 @@ def get_barchart_html(db: Session, rank_query: schemas.RankQuery, target_type: V
         alt.selection_single()
     ).interactive()
 
-
     # Return the json format of the plot for further vega embedding in jinja template.
     return json.loads(plot.to_json())
 
-# Calculate net positions for the rank tables.
-def get_net_positions_daily(db: Session, net_pos_query: schemas.NetPosDaily):
+# Return the json formats for bar plots of long volumes and short volumes.
+def get_barchart_html(db: Session, rank_query: schemas.RankQuery):
     query = (
-        select(
-            RankEntry.companyname, 
-            RankEntry.volumetype,
-            NetPosition.net_pos
-        )
+        select(RankEntry.company, RankEntry.vol, RankEntry.chg, RankEntry.volType)
         .where(
-            RankEntry.instrumentID == net_pos_query.instrumentID,
-            RankEntry.date == net_pos_query.date,
-            or_(
-                RankEntry.volumetype == VolumeType.long,
-                RankEntry.volumetype == VolumeType.short
+            and_(
+                RankEntry.contractID == rank_query.contractID,
+                RankEntry.date == rank_query.date,
             )
         )
-        .join(NetPosition, NetPosition.rank_entry_id == RankEntry.id)
-    )
-
-    results= db.execute(query).all()
-    long_dict, short_dict = {}, {}
-
-    for (name, type, net_pos, ) in results:
-        if type == VolumeType.long:
-            long_dict[name] = net_pos
-        elif type == VolumeType.short:
-            short_dict[name] = net_pos
-    
-    long_sum = sum(long_dict.values())
-    short_sum = sum(short_dict.values())
-    return long_dict, short_dict, long_sum, short_sum
-
-# Get all the available company names inside the database.
-def get_company_name(db: Session):
-    query = (
-        select(RankEntry.companyname).distinct().order_by(RankEntry.companyname)
-    )
-    
+        .order_by(RankEntry.rank)
+    )   
     result = db.execute(query).all()
-    return [name for (name, ) in result]
 
-    
-# Get the json codes for the company-wise line chart.
-def get_linechart_company(db: Session, net_pos_query: schemas.NetPosQuery):
-    subq = (
-        select(func.avg(NetPosition.net_pos).label("net_pos"), RankEntry.date.label("date"))
-        .where(
-            RankEntry.instrumentType == net_pos_query.instrumentType,
-            RankEntry.companyname == net_pos_query.companyName,
-            or_(
-                RankEntry.volumetype == VolumeType.long,
-                RankEntry.volumetype == VolumeType.short
-            )
-        )
-        .group_by(RankEntry.instrumentID, RankEntry.date)
-        .join(NetPosition, NetPosition.rank_entry_id == RankEntry.id)
-        .subquery()
-    )
+    volume_long, type_long, name_long = [], [], []
+    volume_short, type_short, name_short = [], [], []
+    pure_long, pure_short = [], []
 
-    query = (
-        select(func.sum(subq.c.net_pos), subq.c.date)
-        .group_by(subq.c.date)
-    )
-    
-    result = db.execute(query).all()
-    if not result: return []
+    for (company, vol, chg, volType, ) in result:
+        if volType == 'b':
+            volume_long.append(vol)
+            type_long.append('多头')
+            name_long.append(company)
 
-    net_pos_list, date_list = [], []
-    for (sum, date, ) in result:
-        net_pos_list.append(sum)
-        date_list.append(date)
+            volume_long.append(chg)
+            name_long.append(company)
+            if chg >= 0:
+                type_long.append("增加")
+            else:
+                type_long.append("减少")
 
-    # Draw the line chart.
-    source = pd.DataFrame({
+            pure_long.append(company)
+        elif volType == 's':
+            volume_short.append(vol)
+            type_short.append('空头')
+            name_short.append(company)
+
+            volume_short.append(chg)
+            name_short.append(company)
+            if chg >= 0:
+                type_short.append("增加")
+            else:
+                type_short.append("减少")
+
+            pure_short.append(company)
+
+    bar_chart_long = _draw_bar_chart(volume_long, name_long, type_long, \
+                                      pure_long, rank_query.contractID, 'b')
+    bar_chart_short = _draw_bar_chart(volume_short, name_short, type_short, \
+                                      pure_short, rank_query.contractID, 's')
+
+    return bar_chart_long, bar_chart_short
+
+# Function to use altair to draw the bar plot.
+def _draw_line_chart(date_list, net_list, type_list=None):
+    if not type_list:
+        type_list = ['black'] * len(date_list)
+    line_df = pd.DataFrame({
         'date': date_list,
-        'net_pos': net_pos_list,
+        'net': net_list,
+        'type': type_list,
     })
-    source['date'] = pd.to_datetime(source['date'])
+    line_df['date'] = pd.to_datetime(line_df['date'])
 
-    plot = alt.Chart(source).mark_line().encode(
+    plot = alt.Chart(line_df).mark_line().encode(
         alt.X('date:T', axis=alt.Axis(format="%Y-%m-%d")),
-        alt.Y('net_pos:Q', title="席位净持仓"),
-        tooltip=['date', 'net_pos'],
+        alt.Y('net:Q', title="席位净持仓"),
+        color='type:N',
+        tooltip=['date', 'net'],
     ).properties(
         width=700,
         height=200
@@ -241,41 +154,68 @@ def get_linechart_company(db: Session, net_pos_query: schemas.NetPosQuery):
 
     return json.loads(plot.to_json())
 
+# Get the json codes for the company-wise line chart.
+def get_linechart_company(db: Session, net_pos_query: schemas.NetPosQuery):
+    subq = (
+        select(func.avg(NetPosition.net).label("net"), RankEntry.date)
+        .where(
+            RankEntry.contractType == net_pos_query.contractType,
+            RankEntry.company == net_pos_query.company,
+        )
+        .group_by(RankEntry.contractID, RankEntry.date)
+        .join(NetPosition, NetPosition.rank_id == RankEntry.id)
+        .subquery()
+    )
+
+    query = (
+        select(func.sum(subq.c.net), subq.c.date)
+        .group_by(subq.c.date)
+    )
+    
+    result = db.execute(query).all()
+
+    res_dict = {}
+    for (sum, date, ) in result:
+        res_dict[date] = sum
+
+    # If there is no data for the company at certain dates, use 0 by default.
+    date_list = get_dates(db)
+    for date in date_list:
+        if date not in res_dict.keys():
+            res_dict[date] = 0
+
+    line_chart_company = _draw_line_chart(res_dict.keys(), res_dict.values())
+    return line_chart_company
+
 # Get the total sum of net posisions on each date across all companies.
 def get_linechart_total(db: Session, selectedType: str):   
     subq = (
         select(
-            func.avg(NetPosition.net_pos).label("net_pos"),
-            RankEntry.companyname.label("name"),
-            RankEntry.date.label("date")
+            func.avg(NetPosition.net).label("net"),
+            RankEntry.company,
+            RankEntry.date,
         )  
-        .where(
-            RankEntry.instrumentType == selectedType,
-            or_(
-                RankEntry.volumetype == VolumeType.long,
-                RankEntry.volumetype == VolumeType.short
-            )
-        )
-        .group_by(RankEntry.instrumentID, RankEntry.date, RankEntry.companyname)
-        .join(NetPosition, NetPosition.rank_entry_id == RankEntry.id)
+        .where(RankEntry.contractType == selectedType)
+        .group_by(RankEntry.contractID, RankEntry.date, RankEntry.company)
+        .join(NetPosition, NetPosition.rank_id == RankEntry.id)
         .subquery()
     )
 
     subsubq = (
-        select(func.sum(subq.c.net_pos).label("net_pos"), subq.c.name, subq.c.date)
-        .group_by(subq.c.name, subq.c.date)
+        select(func.sum(subq.c.net).label("net"), subq.c.company, subq.c.date)
+        .group_by(subq.c.company, subq.c.date)
         .subquery()
     )
 
     long_query = (
-        select(func.sum(subsubq.c.net_pos), subsubq.c.date)
-        .where(subsubq.c.net_pos > 0)
+        select(func.sum(subsubq.c.net), subsubq.c.date)
+        .where(subsubq.c.net > 0)
         .group_by(subsubq.c.date)
     )
 
     short_query = (
-        select(func.sum(subsubq.c.net_pos), subsubq.c.date)
-        .where(subsubq.c.net_pos < 0)
+        select(func.sum(subsubq.c.net), subsubq.c.date)
+        .where(subsubq.c.net < 0)
         .group_by(subsubq.c.date)
     )
     
@@ -291,73 +231,79 @@ def get_linechart_total(db: Session, selectedType: str):
         date_list.append(date)
         type_list.append('short')
 
-    # Draw the line chart.
-    source = pd.DataFrame({
-        'date': date_list,
-        'net_pos': sum_list,
-        'type': type_list
-    })
-    source['date'] = pd.to_datetime(source['date'])
+    line_chart_total = _draw_line_chart(date_list, sum_list, type_list)
+    return line_chart_total
 
-    plot = alt.Chart(source).mark_line().encode(
-        alt.X('date:T', axis=alt.Axis(format="%Y-%m-%d")),
-        alt.Y('net_pos:Q', title="纯总净持仓"),
-        color='type:N',
-        tooltip=['date', 'net_pos'],
-    ).properties(
-        width=700,
-        height=200
-    ).add_selection(
-        alt.selection_single()
-    ).interactive()
 
-    return json.loads(plot.to_json())
 
-# Get the net position ranking given instrument type.
-def get_net_pos_rank(db: Session, selectedType: str):  
-    dateq = (
-        select(func.max(RankEntry.date))
+# Return all the entries queried by the user.
+def get_rank_entries(db: Session, rank_query: schemas.RankQuery):
+    query = (
+        select(RankEntry, NetPosition.net)
         .where(
-            RankEntry.instrumentType == selectedType,
-            or_(
-                RankEntry.volumetype == VolumeType.long,
-                RankEntry.volumetype == VolumeType.short
+            and_(
+                RankEntry.contractID == rank_query.contractID,
+                RankEntry.date == rank_query.date,
+                # RankEntry.exchange == rank_query.exchange,
             )
         )
+        .order_by(RankEntry.rank)
+        .join(NetPosition, NetPosition.rank_id == RankEntry.id)
     )
+    results= db.execute(query).all()
+    
+    entries = []
+    sum_vol_long, sum_chg_long, sum_net_long = 0, 0, 0
+    sum_vol_short, sum_chg_short, sum_net_short = 0, 0, 0
+    for (entry, net, ) in results:
+        entries.append((entry, net))
+        if entry.volType == 'b': 
+            sum_vol_long += entry.vol
+            sum_chg_long += entry.chg
+            sum_net_long += net
+        if entry.volType == 's': 
+            sum_vol_short += entry.vol
+            sum_chg_short += entry.chg
+            sum_net_short += net
+
+    sum_dict = {}
+    sum_dict['b'] = (sum_vol_long, sum_chg_long, sum_net_long)
+    sum_dict['s'] = (sum_vol_short, sum_chg_short, sum_net_short)
+
+    return entries, sum_dict
+
+# Get the net position ranking given contract type.
+def get_net_rank(db: Session, selectedType: str):  
+    dateq = (select(func.max(RankEntry.date)).where(RankEntry.contractType == selectedType))
     max_date = db.execute(dateq).scalar()
 
     subq = (
-        select(func.avg(NetPosition.net_pos).label("net_pos"), RankEntry.companyname.label("name"))
+        select(func.avg(NetPosition.net).label("net"), RankEntry.company)
         .where(
-            RankEntry.instrumentType == selectedType,
+            RankEntry.contractType == selectedType,
             RankEntry.date == max_date,
-            or_(
-                RankEntry.volumetype == VolumeType.long,
-                RankEntry.volumetype == VolumeType.short
-            )
         )
-        .group_by(RankEntry.instrumentID, RankEntry.companyname)
-        .join(NetPosition, NetPosition.rank_entry_id == RankEntry.id)
+        .group_by(RankEntry.contractID, RankEntry.company)
+        .join(NetPosition, NetPosition.rank_id == RankEntry.id)
         .subquery()
     )
 
     subsubq = (
-        select(func.sum(subq.c.net_pos).label("net_pos"), subq.c.name)
-        .group_by(subq.c.name)
+        select(func.sum(subq.c.net).label("net"), subq.c.company)
+        .group_by(subq.c.company)
         .subquery()
     )
 
     long_query = (
-        select(subsubq.c.net_pos, subsubq.c.name)
-        .where(subsubq.c.net_pos > 0)
-        .order_by(subsubq.c.net_pos.desc())
+        select(subsubq.c.net, subsubq.c.company)
+        .where(subsubq.c.net > 0)
+        .order_by(subsubq.c.net.desc())
     )
 
     short_query = (
-        select(func.abs(subsubq.c.net_pos), subsubq.c.name)
-        .where(subsubq.c.net_pos < 0)
-        .order_by(func.abs(subsubq.c.net_pos).desc())
+        select(func.abs(subsubq.c.net), subsubq.c.company)
+        .where(subsubq.c.net < 0)
+        .order_by(func.abs(subsubq.c.net).desc())
     )
     
     long_result, short_result = db.execute(long_query).all(), db.execute(short_query).all()
@@ -371,7 +317,10 @@ def get_net_pos_rank(db: Session, selectedType: str):
         short_list.append((name, sum))
         short_sum += sum
 
-    return long_list, short_list, long_sum, short_sum
+    res_dict = {}
+    res_dict['b'] = (long_list, long_sum)
+    res_dict['s'] = (short_list, short_sum)
+    return res_dict
 
 
 

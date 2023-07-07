@@ -1,5 +1,5 @@
 import uvicorn
-
+import datetime
 from typing import List
 from typing_extensions import Annotated
 
@@ -11,7 +11,6 @@ from fastapi.responses import HTMLResponse
 from . import crud, models, schemas
 from .database import Session
 
-import datetime
 
 
 app = FastAPI()
@@ -30,44 +29,35 @@ def get_db():
 @app.post("/", response_class=HTMLResponse)
 async def rank(
     request: Request,
-    selectedType: Annotated[str, Form()]="IF",
-    selectedID: Annotated[str, Form()]="IF2307", 
-    selectedDate: Annotated[datetime.date, Form()]='2023-06-14', 
-    selectedExchange: Annotated[str, Form()]='CFFEX',
+    selectedType: Annotated[str, Form()]="cu",
+    selectedID: Annotated[str, Form()]="cu2307", 
+    selectedDate: Annotated[datetime.date, Form()]='2023-06-29', 
     db: Session = Depends(get_db)
 ):
 
     # Retrieve data from the database.
-    rank_query = schemas.RankQuery(instrumentID=selectedID, date=selectedDate, exchange=selectedExchange)
-    net_pos_query = schemas.NetPosDaily(instrumentID=selectedID, date=selectedDate)
+    rank_query = schemas.RankQuery(contractID=selectedID, date=selectedDate)
+    # net_pos_query = schemas.NetPosDaily(instrumentID=selectedID, date=selectedDate)
 
-    entries, volume_sums, change_sums = crud.get_rank_entries(db=db, rank_query=rank_query)
+    entries, sums = crud.get_rank_entries(db=db, rank_query=rank_query)
     if not entries:
         raise HTTPException(status_code=404, detail='Item not found')
-    instrumentTypes = crud.get_instrument_type(db=db)
-    instrumentIDs = crud.get_instrument_id(db=db, selected_type=selectedType)
-    barchartlong_html= crud.get_barchart_html(db=db, rank_query=rank_query, target_type=schemas.VolumeType.long)
-    barchartshort_html= crud.get_barchart_html(db=db, rank_query=rank_query, target_type=schemas.VolumeType.short)
-    long_dict, short_dict, long_sum, short_sum = crud.get_net_positions_daily(db=db, net_pos_query=net_pos_query)
+    contractTypes = crud.get_contract_type(db=db)
+    contractIDs = crud.get_contract_id(db=db, selected_type=selectedType)
+    barChartLong, barChartShort= crud.get_barchart_html(db=db, rank_query=rank_query)
 
     # Render the template.
     return templates.TemplateResponse("rank.html", {
         "request": request,
         "entries": entries,
-        "volume_sums": volume_sums,
-        "change_sums": change_sums,
-        "instrument_types": instrumentTypes,
-        "instrument_IDs": instrumentIDs,
+        "sums": sums,
+        "contract_types": contractTypes,
+        "contract_IDs": contractIDs,
         "selected_type": selectedType,
         "selected_ID": selectedID,
         "selected_date": selectedDate,
-        "selected_exchange": selectedExchange,
-        "barchartlong_html": barchartlong_html,
-        "barchartshort_html": barchartshort_html,
-        "long_net_pos_dict": long_dict,
-        "short_net_pos_dict": short_dict,
-        "long_sum": long_sum,
-        "short_sum": short_sum
+        "bar_chart_long": barChartLong,
+        "bar_chart_short": barChartShort,
     })
 
 
@@ -75,32 +65,28 @@ async def rank(
 @app.post("/net", response_class=HTMLResponse)
 async def net(
     request: Request,
-    selectedType: Annotated[str, Form()]="RB",
+    selectedType: Annotated[str, Form()]="rb",
     selectedName: Annotated[str, Form()]="国泰君安", 
     db: Session = Depends(get_db)
 ):
-    instrumentTypes = crud.get_instrument_type(db=db)
+    
+    contractTypes = crud.get_contract_type(db=db)
     companyNames = crud.get_company_name(db=db)
 
-    net_pos_query = schemas.NetPosQuery(instrumentType=selectedType, companyName=selectedName)
-    net_long_table, net_short_table, net_long_sum, net_short_sum = crud.get_net_pos_rank(db=db, selectedType=selectedType)
-    linechart_company = crud.get_linechart_company(db=db, net_pos_query=net_pos_query)    
-    if not linechart_company:
-        raise HTTPException(status_code=404, detail='Item not found')
-    linechart_total = crud.get_linechart_total(db=db, selectedType=selectedType)    
+    net_pos_query = schemas.NetPosQuery(contractType=selectedType, company=selectedName)
+    netRank = crud.get_net_rank(db=db, selectedType=selectedType)
+    lineChartCompany = crud.get_linechart_company(db=db, net_pos_query=net_pos_query)    
+    lineChartTotal = crud.get_linechart_total(db=db, selectedType=selectedType)    
 
-    return templates.TemplateResponse("net_positions.html", {
+    return templates.TemplateResponse("net.html", {
         "request": request,
-        "instrument_types": instrumentTypes,
+        "contract_types": contractTypes,
         "company_names": companyNames,
         "selected_type": selectedType,
         "selected_name": selectedName,
-        "linechart_company": linechart_company,
-        "linechart_total": linechart_total,
-        "net_long_table": net_long_table,
-        "net_short_table": net_short_table,
-        "net_long_sum": net_long_sum,
-        "net_short_sum": net_short_sum
+        "line_chart_company": lineChartCompany,
+        "line_chart_total": lineChartTotal,
+        "net_rank": netRank,
     })
 
 @app.exception_handler(404)
