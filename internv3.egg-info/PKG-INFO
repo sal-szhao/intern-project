@@ -1,0 +1,5 @@
+Metadata-Version: 2.1
+Name: internv3
+Version: 3.0
+Summary: version 3 of the intern project
+Requires-Python: >=3.6
