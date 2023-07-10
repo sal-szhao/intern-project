@@ -28,7 +28,7 @@ CZCE_BEFORE_CHANGE_C2P = dict([(v, k) for k, v in CZCE_BEFORE_CHANGE.items()])
 CZCE_ALL_C2P = {**CZCE_BEFORE_CHANGE_C2P, **CZCE_C2P}
 
 # CFFEX
-CFFEX_C2P = {'if': '沪深300', 'ih': '上证50', 'ic': '中证500', 't': '10年期国债', 'tf': '5年期国债', 'ts': '2年期国债'}
+CFFEX_C2P = {'if': '沪深300', 'ih': '上证50', 'ic': '中证500', 'im': '中证1000', 't': '10年期国债', 'tf': '5年期国债', 'ts': '2年期国债', 'tl': '30年期国债'}
 # CFFEX_P2C = dict([(v, k) for k, v in CFFEX_C2P.items()])
 
 ## 交易所数据网址
@@ -41,6 +41,9 @@ CZCE_URL_before_20100825 = "http://www.czce.com.cn/cn/exchange/jyxx/pm/pm%s.html
 CZCE_URL_before_20151008 = "http://www.czce.com.cn/cn/exchange/%s/datatradeholding/%s.htm"
 CFFEX_URL = "http://www.cffex.com.cn/sj/ccpm/%s/%s/%s.xml"
 
+SHFE_URL_MI = "http://www.shfe.com.cn/data/dailydata/kx/kx%s.dat"
+CFFEX_URL_MI = "http://www.cffex.com.cn/sj/hqsj/rtj/%s/%s/index.xml"
+
 ## 品种数据起始日(大商所暂未用到）
 """
 DCE_INIT = {'a': '20030102', 'm': '20050310', 'y': '20061023', 'p': '20071029', 'c': '20060606',
@@ -48,7 +51,7 @@ DCE_INIT = {'a': '20030102', 'm': '20050310', 'y': '20061023', 'p': '20071029', 
             'l': '20070731', 'v': '20090601', 'pp': '20140228',
             'j': '20110415', 'jm': '20130322', 'i': '20131018'}
 """
-CFFEX_INIT = {'if': '20100416', 'ih': '20150416', 'ic': '20150416', 't': '20150320', 'tf': '20130916', 'ts': '20180817'}
+CFFEX_INIT = {'if': '20100416', 'ih': '20150416', 'ic': '20150416', 'im': '20220722', 't': '20150320', 'tf': '20130916', 'ts': '20180817', 'tl': '20230421'}
 # 每个交易所开始公布成交持仓数据的日期
 CONTRACT_INIT = {"CFFEX": "20100415", "SHFE": "20020106", "CZCE": "20050428", "DCE": "20040104"}
 
