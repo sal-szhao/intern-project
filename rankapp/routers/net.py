@@ -5,6 +5,7 @@ from ..database import Session
 from ..utils import common_utils as common
 from ..utils import net_utils as net
 from .. import schemas
+from ..constant import *
 import datetime
 
 router = APIRouter(
@@ -24,6 +25,7 @@ async def get_linechart(
     net_pos_query = schemas.NetPosQuery(contractType=selectedType, company=selectedName)
     line_company = net.get_linechart_net_company(db=db, net_pos_query=net_pos_query)
     line_total = net.get_linechart_net_total(db=db, selectedType=selectedType)    
+    line_k = net.get_k_linechart_net(db=db, selectedType=selectedType)
 
     return {
         "code": 200,
@@ -31,6 +33,8 @@ async def get_linechart(
         "status": "ok",
         "statusText": "请求成功",
         "data": {
+            "title": f"{INS_TYPE_TRANS[selectedType]}净持仓曲线",
+            "chart1": line_k,
             "chart2": line_company,
             "chart3": line_total,
         }
@@ -55,11 +59,3 @@ async def get_table(
             "table2": table_s,
         }
     }
-
-@router.post("/kline")
-async def get_klinechart(
-    selectedType: Annotated[str, Form()]="rb",
-    db: Session = Depends(get_db)
-):
-    pass
-    

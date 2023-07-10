@@ -1,5 +1,5 @@
 from ..database import Session
-from ..models import RankEntry, NetPosition
+from ..models import RankEntry, NetPosition, MarketInfo
 from ..constant import *
 from .. import schemas
 from sqlalchemy import select, and_, or_, func
@@ -48,7 +48,7 @@ def get_linechart_net_company(db: Session, net_pos_query: schemas.NetPosQuery):
     for date in date_miss:
         line_list.append({"date": date, "value": 0, "order": 1})
    
-    return {"title": "席位净持仓", "list": line_list}
+    return {"name": "席位净持仓", "list": line_list}
 
 
 def get_linechart_net_total(db: Session, selectedType: str):  
@@ -94,7 +94,7 @@ def get_linechart_net_total(db: Session, selectedType: str):
         short_list.append({"date": date, "value": -sum})
 
     return {
-        "title": "纯总净持仓", 
+        "namez": "纯总净持仓", 
         "data": [
             {"name": "多头", "list": long_list},
             {"name": "空头", "list": short_list},
@@ -179,7 +179,35 @@ def get_net_rank(db: Session, selectedType: str, volType: str):
     return table_dict
 
 
-def get_linechart_net_total(db: Session, selectedType: str):  
+def get_k_linechart_net(db: Session, selectedType: str):  
     '''
     Get the data necessary to draw the k line plot of the contract type.
     ''' 
+    # Decide which contract is the main contract.
+    query = (
+        select(
+            func.max(MarketInfo.interest), 
+            MarketInfo.date, 
+            MarketInfo.open, 
+            MarketInfo.close, 
+            MarketInfo.low, 
+            MarketInfo.high
+        )
+        .where(
+            MarketInfo.contractType == selectedType,
+        )
+        .group_by(MarketInfo.date)
+    )
+
+    line_list = []
+    result = db.execute(query).all()
+    for _, date, open, close, low, high in result:
+        line_list.append({
+            "date": date, 
+            "open": open,
+            "close": close,
+            "low": low,
+            "high": high,
+        })
+    
+    return {"name": "主连合约", "list": line_list}
