@@ -44,8 +44,6 @@ async def get_table(
     db: Session = Depends(get_db)
 ):
     
-    import time
-    time.sleep(15)
     table_b = net.get_net_rank(db=db, selectedType=selectedType, volType='b')
     table_s = net.get_net_rank(db=db, selectedType=selectedType, volType='s')
 
