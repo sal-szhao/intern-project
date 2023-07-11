@@ -11,7 +11,7 @@ import datetime
 router = APIRouter(
     prefix="/rank",
     tags=["rank"],
-    dependencies=[Depends(get_db)],
+    # dependencies=[Depends(get_db)],
     # responses={404: {"description": "Not found"}},
 )
 
@@ -51,12 +51,10 @@ async def get_date(
 
 @router.post("/table")  
 async def get_table(
-    selectedID: Annotated[str, Form()]="cu2307", 
-    selectedDate: Annotated[datetime.date, Form()]='2023-06-29', 
+    rank_query: schemas.RankQuery, 
     db: Session = Depends(get_db),
 ):
 
-    rank_query = schemas.RankQuery(contractID=selectedID, date=selectedDate)
     table_b = rank.get_rank_entries(db=db, rank_query=rank_query, volType='b')
     table_s = rank.get_rank_entries(db=db, rank_query=rank_query, volType='s')
 
@@ -79,12 +77,13 @@ async def get_table(
 
 @router.post("/bar")  
 async def get_bar(
-    selectedID: Annotated[str, Form()]="cu2307", 
-    selectedDate: Annotated[datetime.date, Form()]='2023-06-29', 
+    # selectedID: Annotated[str, Form()]="cu2307", 
+    # selectedDate: Annotated[datetime.date, Form()]='2023-06-29', 
+    rank_query: schemas.RankQuery, 
     db: Session = Depends(get_db),
 ):
     
-    rank_query = schemas.RankQuery(contractID=selectedID, date=selectedDate)
+    # rank_query = schemas.RankQuery(contractID=selectedID, date=selectedDate)
     bar_b = rank.get_barchart_rank(db=db, rank_query=rank_query, volType='b')
     bar_s = rank.get_barchart_rank(db=db, rank_query=rank_query, volType='s')
 

@@ -1,12 +1,13 @@
-# from typing import List, Union
+from fastapi import Form
 from pydantic import BaseModel
 import datetime
+from typing_extensions import Annotated
 
 class RankQuery(BaseModel):
-    contractID: str
-    date: datetime.date
+    contractID: Annotated[str, Form()] = "cu2307"
+    date: Annotated[datetime.date, Form()]= "2023-06-29"
     # ex: str
 
 class NetPosQuery(BaseModel):
-    contractType: str
-    company: str
+    contractType: Annotated[str, Form()] = "rb"
+    company: Annotated[str, Form()] = "国泰君安" 

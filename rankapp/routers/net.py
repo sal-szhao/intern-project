@@ -11,21 +11,19 @@ import datetime
 router = APIRouter(
     prefix="/net",
     tags=["net"],
-    dependencies=[Depends(get_db)],
+    # dependencies=[Depends(get_db)],
     # responses={404: {"description": "Not found"}},
 )
 
 @router.post("/line")
 async def get_linechart(
-    selectedType: Annotated[str, Form()]="rb",
-    selectedName: Annotated[str, Form()]="国泰君安", 
+    net_pos_query: schemas.NetPosQuery,
     db: Session = Depends(get_db)
 ):
 
-    net_pos_query = schemas.NetPosQuery(contractType=selectedType, company=selectedName)
     line_company = net.get_linechart_net_company(db=db, net_pos_query=net_pos_query)
-    line_total = net.get_linechart_net_total(db=db, selectedType=selectedType)    
-    line_k = net.get_k_linechart_net(db=db, selectedType=selectedType)
+    line_total = net.get_linechart_net_total(db=db, selectedType=net_pos_query.contractType)    
+    line_k = net.get_k_linechart_net(db=db, selectedType=net_pos_query.contractType)
 
     return {
         "code": 200,
@@ -33,7 +31,7 @@ async def get_linechart(
         "status": "ok",
         "statusText": "请求成功",
         "data": {
-            "title": f"{INS_TYPE_TRANS[selectedType]}净持仓曲线",
+            "title": f"{INS_TYPE_TRANS[net_pos_query.contractType]}净持仓曲线",
             "chart1": line_k,
             "chart2": line_company,
             "chart3": line_total,
@@ -46,6 +44,8 @@ async def get_table(
     db: Session = Depends(get_db)
 ):
     
+    import time
+    time.sleep(15)
     table_b = net.get_net_rank(db=db, selectedType=selectedType, volType='b')
     table_s = net.get_net_rank(db=db, selectedType=selectedType, volType='s')
 

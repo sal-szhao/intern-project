@@ -118,7 +118,10 @@ def _get_prev_net(db: Session, net_pos_query: schemas.NetPosQuery, selectedDate:
     )
     query = (select(func.sum(subq.c.net)))
     result = db.execute(query).scalar()
-    return abs(result)
+    if result:
+        return abs(result)
+    else:
+        return 0
 
 
 def get_net_rank(db: Session, selectedType: str, volType: str):  

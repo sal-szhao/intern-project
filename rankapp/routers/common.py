@@ -7,7 +7,7 @@ from ..utils import common_utils as common
 router = APIRouter(
     prefix="/common",
     tags=["common"],
-    dependencies=[Depends(get_db)],
+    # dependencies=[Depends(get_db)],
     # responses={404: {"description": "Not found"}},
 )
 
