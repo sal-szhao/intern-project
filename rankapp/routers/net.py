@@ -15,10 +15,12 @@ router = APIRouter(
     # responses={404: {"description": "Not found"}},
 )
 
+SessionDep = Annotated[Session, Depends(get_db)]
+
 @router.post("/line")
 async def get_linechart(
+    db: SessionDep,
     net_pos_query: schemas.NetPosQuery,
-    db: Session = Depends(get_db)
 ):
 
     line_company = net.get_linechart_net_company(db=db, net_pos_query=net_pos_query)
@@ -40,8 +42,8 @@ async def get_linechart(
 
 @router.post("/table")
 async def get_table(
+    db: SessionDep,
     selectedType: Annotated[str, Form()]="rb",
-    db: Session = Depends(get_db)
 ):
     
     table_b = net.get_net_rank(db=db, selectedType=selectedType, volType='b')

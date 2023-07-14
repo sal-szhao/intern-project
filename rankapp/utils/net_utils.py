@@ -131,42 +131,64 @@ def get_net_rank(db: Session, selectedType: str, volType: str):
     date_all = _get_date_all(db=db)
     curr_date, prev_date = date_all[-1], date_all[-2]
 
-    subq = (
-        select(func.avg(NetPosition.net).label("net"), RankEntry.company)
-        .where(
-            RankEntry.contractType == selectedType,
-            RankEntry.date == curr_date,
+    baseq = (
+        select(
+            NetPosition.net, 
+            RankEntry.company, 
+            RankEntry.contractID,
+            RankEntry.date,
         )
-        .group_by(RankEntry.contractID, RankEntry.company)
         .join(NetPosition, NetPosition.rank_id == RankEntry.id)
+        .where(RankEntry.contractType == selectedType)
         .subquery()
     )
 
-    subsubq = (
-        select(func.sum(subq.c.net).label("net"), subq.c.company)
-        .group_by(subq.c.company)
+    tdayq = (
+        select(func.avg(baseq.c.net).label("tnet"), baseq.c.company)
+        .where(baseq.c.date == curr_date)
+        .group_by(baseq.c.contractID, baseq.c.company)
+        .subquery()
+    )
+
+    ydayq = (
+        select(func.avg(baseq.c.net).label("ynet"), baseq.c.company)
+        .where(baseq.c.date == prev_date)
+        .group_by(baseq.c.contractID, baseq.c.company)
+        .subquery()
+    )
+
+    tdaysum = (
+        select(func.sum(tdayq.c.tnet).label("tnet"), tdayq.c.company)
+        .group_by(tdayq.c.company)
+        .subquery()
+    )
+
+    ydaysum = (
+        select(func.sum(ydayq.c.ynet).label("ynet"), ydayq.c.company)
+        .group_by(ydayq.c.company)
         .subquery()
     )
 
     filter_dict = {"b": 1, "s": -1}
     query = (
-        select(func.abs(subsubq.c.net), subsubq.c.company)
-        .where(subsubq.c.net * filter_dict[volType] > 0)
-        .order_by(func.abs(subsubq.c.net).desc())
+        select(
+            (tdaysum.c.tnet - ydaysum.c.ynet).label("chg"), 
+            func.abs(tdaysum.c.tnet), 
+            tdaysum.c.company,
+        )
+        .join(ydaysum, tdaysum.c.company == ydaysum.c.company)
+        .where(tdaysum.c.tnet * filter_dict[volType] > 0)
+        .order_by(func.abs(tdaysum.c.tnet).desc())
     )
     
     result = db.execute(query).all()
 
-
     table_list = []
     net_total, chg_total = 0, 0
-    for (net, name, ) in result:
-        net_pos_query = schemas.NetPosQuery(contractType=selectedType, company=name)
-        prev_net = _get_prev_net(db=db, net_pos_query=net_pos_query, selectedDate=prev_date)
-        change = net - prev_net
+    for (chg, net, name, ) in result:
         net_total += net
-        chg_total += change
-        table_list.append({0: name, 1: net, 2: change})
+        chg_total += chg
+        table_list.append({0: name, 1: net, 2: chg})
 
     table_list.append({0: "合计：", 1: net_total, 2: chg_total})
     

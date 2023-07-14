@@ -11,9 +11,11 @@ router = APIRouter(
     # responses={404: {"description": "Not found"}},
 )
 
+SessionDep = Annotated[Session, Depends(get_db)]
+
 @router.get("/f_name")
 async def get_contract_type(
-    db: Session=Depends(get_db)
+    db: SessionDep,
 ):
     contract_types = common.get_contract_type(db=db)
 
@@ -27,7 +29,7 @@ async def get_contract_type(
 
 @router.get("/f_company")
 async def get_contract_type(
-    db: Session=Depends(get_db)
+    db: SessionDep,
 ):
     companies = common.get_company(db=db)
 

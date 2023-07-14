@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Form
+from fastapi import APIRouter, Depends, HTTPException, Form, Query
 from typing_extensions import Annotated
 from ..dependencies import get_db
 from ..database import Session
@@ -15,10 +15,12 @@ router = APIRouter(
     # responses={404: {"description": "Not found"}},
 )
 
+SessionDep = Annotated[Session, Depends(get_db)]
+
 @router.get("/f_id")
 async def get_contract_ID(
-    selectedType: str='cu',
-    db: Session=Depends(get_db),
+    db: SessionDep,
+    selectedType: Annotated[str, Query()]='cu',
 ):
 
     contractIDs = common.get_contract_id(db=db, selected_type=selectedType)
@@ -34,8 +36,8 @@ async def get_contract_ID(
 
 @router.get("/f_date")
 async def get_date(
-    selectedID: str='cu2307',
-    db: Session=Depends(get_db),
+    db: SessionDep,
+    selectedID: Annotated[str, Query()]='cu2307',
 ):
 
     contractDate = common.get_date(db=db, selected_id=selectedID)
@@ -51,8 +53,8 @@ async def get_date(
 
 @router.post("/table")  
 async def get_table(
+    db: SessionDep,
     rank_query: schemas.RankQuery, 
-    db: Session = Depends(get_db),
 ):
 
     table_b = rank.get_rank_entries(db=db, rank_query=rank_query, volType='b')
@@ -79,8 +81,8 @@ async def get_table(
 async def get_bar(
     # selectedID: Annotated[str, Form()]="cu2307", 
     # selectedDate: Annotated[datetime.date, Form()]='2023-06-29', 
+    db: SessionDep,
     rank_query: schemas.RankQuery, 
-    db: Session = Depends(get_db),
 ):
     
     # rank_query = schemas.RankQuery(contractID=selectedID, date=selectedDate)
@@ -100,8 +102,8 @@ async def get_bar(
 
 @router.post("/line")  
 async def get_line(
+    db: SessionDep,
     selectedID: Annotated[str, Form()]="cu2307", 
-    db: Session = Depends(get_db),
 ):
     
     line = rank.get_linechart_rank(db=db, selectedID=selectedID)
