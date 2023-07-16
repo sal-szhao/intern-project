@@ -2,11 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, Form
 from typing_extensions import Annotated
 from ..dependencies import get_db
 from ..database import Session
-from ..utils import common_utils as common
 from ..utils import net_utils as net
 from .. import schemas
 from ..constant import *
-import datetime
 
 router = APIRouter(
     prefix="/net",
