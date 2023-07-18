@@ -44,6 +44,9 @@ CFFEX_URL = "http://www.cffex.com.cn/sj/ccpm/%s/%s/%s.xml"
 SHFE_URL_MI = "http://www.shfe.com.cn/data/dailydata/kx/kx%s.dat"
 CFFEX_URL_MI = "http://www.cffex.com.cn/sj/hqsj/rtj/%s/%s/index.xml"
 
+SHFE_URL_MMI = "https://www.shfe.com.cn/data/dailydata/%smonthvarietystatistics.dat"
+CFFEX_URL_MMI = "http://www.cffex.com.cn/sj/hqsj/ytj/%s/index.xml"
+
 ## 品种数据起始日(大商所暂未用到）
 """
 DCE_INIT = {'a': '20030102', 'm': '20050310', 'y': '20061023', 'p': '20071029', 'c': '20060606',

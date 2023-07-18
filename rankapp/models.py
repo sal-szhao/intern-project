@@ -66,7 +66,7 @@ class MarketInfo:
     interest = Column(Integer)
 
     def __repr__(self):
-        return "<RankEntry(%r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r)>" % (
+        return "<MarketInfo(%r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r)>" % (
             self.contractType,
             self.contractTypeC,
             self.contractID,
@@ -80,5 +80,41 @@ class MarketInfo:
             self.turnover,
             self.settle,
             self.settle_prev,
+            self.interest,
+        )
+    
+@mapper_registry.mapped
+class MonthMarketInfo:
+    __tablename__ = "month_market_info"
+
+    id = Column(Integer, primary_key=True)
+    contractType = Column(String)
+    contractTypeC = Column(String)
+    contractID = Column(String)
+    ex = Column(String)
+    date = Column(Date)
+    open = Column(Float)
+    close = Column(Float)
+    high = Column(Float)
+    low = Column(Float)
+    vol = Column(Integer)
+    turnover = Column(Float)
+    settle = Column(Float)
+    interest = Column(Integer)
+
+    def __repr__(self):
+        return "<MonthMarketInfo(%r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r)>" % (
+            self.contractType,
+            self.contractTypeC,
+            self.contractID,
+            self.ex,
+            self.date,
+            self.open,
+            self.close,
+            self.high,
+            self.low,
+            self.vol,
+            self.turnover,
+            self.settle,
             self.interest,
         )

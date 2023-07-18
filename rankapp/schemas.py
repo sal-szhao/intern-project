@@ -11,3 +11,7 @@ class RankQuery(BaseModel):
 class NetPosQuery(BaseModel):
     contractType: Annotated[str, Form()] = "rb"
     company: Annotated[str, Form()] = "国泰君安" 
+
+class MonthQuery(BaseModel):
+    contractType: Annotated[str, Form()] = "rb"
+    contractMonth: Annotated[str, Form()] = "09"
