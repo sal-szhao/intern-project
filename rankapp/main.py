@@ -12,7 +12,6 @@ app.include_router(month.router)
 
 
 
-
 # @app.exception_handler(404)
 # async def http_exception_handler(request, exc):
 #     return templates.TemplateResponse("errors/404.html", {"request": request})

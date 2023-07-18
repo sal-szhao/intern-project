@@ -6,7 +6,7 @@ from typing_extensions import Annotated
 class RankQuery(BaseModel):
     contractID: Annotated[str, Form()] = "cu2307"
     date: Annotated[datetime.date, Form()]= "2023-06-29"
-    # ex: str
+    # ex: Annotated[int, Form()]
 
 class NetPosQuery(BaseModel):
     contractType: Annotated[str, Form()] = "rb"
